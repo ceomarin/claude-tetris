@@ -1,0 +1,47 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*),Read,Grep,Glob"'
+          prompt: |
+            Eres el triage bot del repo. Analiza el issue #${{ github.event.issue.number }} y haz lo siguiente. No modifiques código ni abras PRs.
+
+            1. Lee el issue con `gh issue view ${{ github.event.issue.number }}` y la lista de labels con `gh label list`. Lee `CLAUDE.md` y el código relevante (`game.js`, `index.html`, `style.css`).
+
+            2. Asigna labels SOLO de los existentes en `gh label list` con `gh issue edit ${{ github.event.issue.number }} --add-label "..."`. Elige un tipo (`bug`, `enhancement`, `documentation`, `question`) y añade extras si aplican (`accessibility`, `duplicate`, `invalid`, `good first issue`, `help wanted`). No quites labels puestos por humanos.
+
+            3. Publica el diagnóstico en UN único comentario. Antes busca si ya existe un comentario tuyo que contenga el marcador `<!-- claude-triage -->` (con `gh issue view ${{ github.event.issue.number }} --comments`). Si existe, actualízalo con `gh issue comment ${{ github.event.issue.number }} --edit-last`; si no, créalo con `gh issue comment`. Incluye el marcador `<!-- claude-triage -->` al inicio del comentario.
+
+            4. Estructura del diagnóstico (en español):
+               - **Resumen**: qué se pide o qué falla, en 2-3 líneas.
+               - **Labels aplicados**: cuáles y por qué.
+               - **Causa probable / área afectada**: archivos y funciones concretas (p. ej. `game.js` → `tryRotate()`, `collide()`). Indica si es una hipótesis.
+               - **Reproducción**: pasos si es un bug; si faltan datos, lista qué información pedir.
+               - **Propuesta de implementación**: pasos concretos, riesgos, y si toca dimensiones acopladas (`COLS`/`ROWS`/`BLOCK` ↔ `<canvas>` en `index.html`, `#next-canvas`).
+               - **Criterios de aceptación**: lista verificable.
+
+            Sé concreto y no inventes archivos ni funciones que no existan en el repo.
