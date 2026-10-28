@@ -216,3 +216,47 @@ kbd {
 #restart-btn:hover {
   background: var(--accent-hover);
 }
+
+/* ---- Skins ---- */
+#skin-select {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#skin-select:hover,
+#skin-select:focus-visible {
+  border-color: var(--accent);
+}
+
+/* Neon: canvas negro en ambos temas */
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  --canvas-bg: #000000;
+}
+
+/* Pastel */
+[data-skin="pastel"] #board,
+[data-skin="pastel"] #next-canvas {
+  --canvas-bg: #2a2536;
+}
+
+[data-skin="pastel"][data-theme="light"] #board,
+[data-skin="pastel"][data-theme="light"] #next-canvas {
+  --canvas-bg: #e6def0;
+}
+
+/* Pixel art */
+[data-skin="pixel"] #board,
+[data-skin="pixel"] #next-canvas {
+  --canvas-bg: #10131a;
+}
+
+[data-skin="pixel"][data-theme="light"] #board,
+[data-skin="pixel"][data-theme="light"] #next-canvas {
+  --canvas-bg: #cfd4c2;
+}

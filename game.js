@@ -174,16 +174,164 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+// ---- Skins ----
+// Cada skin define su paleta (`colors`, índice 0 = null, 1–8 = I,O,T,S,Z,J,L,Tuerca)
+// y su función `draw(context, x, y, colorIndex, size, alpha)`.
+
+// Trazado de rectángulo redondeado con arcTo (compatible sin depender de roundRect)
+function skinRoundRectPath(context, px, py, w, h, r) {
+  context.beginPath();
+  context.moveTo(px + r, py);
+  context.arcTo(px + w, py, px + w, py + h, r);
+  context.arcTo(px + w, py + h, px, py + h, r);
+  context.arcTo(px, py + h, px, py, r);
+  context.arcTo(px, py, px + w, py, r);
+  context.closePath();
+}
+
+const SKINS = {
+  // Retro: cuadrados planos con highlight; respeta el tema claro/oscuro
+  // (`colors` es la paleta oscura; draw() elige COLORS_LIGHT según `theme`)
+  retro: {
+    colors: COLORS,
+    draw(context, x, y, colorIndex, size, alpha) {
+      const color = (theme === 'light' ? COLORS_LIGHT : COLORS)[colorIndex];
+      context.globalAlpha = alpha ?? 1;
+      context.fillStyle = color;
+      context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+      // highlight
+      context.fillStyle = 'rgba(255,255,255,0.12)';
+      context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+      context.globalAlpha = 1;
+    },
+  },
+
+  // Neon: colores saturados con glow (shadowBlur) sobre fondo negro
+  neon: {
+    colors: [
+      null,
+      '#00f0ff', // I
+      '#fff200', // O
+      '#d500f9', // T
+      '#39ff14', // S
+      '#ff1744', // Z
+      '#2979ff', // J
+      '#ff9100', // L
+      '#e0e0ff', // Tuerca
+    ],
+    draw(context, x, y, colorIndex, size, alpha) {
+      const color = this.colors[colorIndex];
+      const px = x * size + 2, py = y * size + 2, s = size - 4;
+      context.save();
+      context.globalAlpha = alpha ?? 1;
+      context.shadowColor = color;
+      context.shadowBlur = Math.round(size * 0.5);
+      context.fillStyle = color;
+      context.globalAlpha *= 0.85;
+      context.fillRect(px, py, s, s);
+      // borde brillante interior, sin sombra
+      context.shadowBlur = 0;
+      context.globalAlpha = alpha ?? 1;
+      context.strokeStyle = 'rgba(255,255,255,0.75)';
+      context.lineWidth = 1;
+      context.strokeRect(px + 0.5, py + 0.5, s - 1, s - 1);
+      context.restore(); // restaura shadowBlur/shadowColor/globalAlpha
+    },
+  },
+
+  // Pastel: colores suaves y esquinas redondeadas
+  pastel: {
+    colors: [
+      null,
+      '#a8e6ef', // I
+      '#fff1a8', // O
+      '#d9b8f0', // T
+      '#b5ead0', // S
+      '#ffb3ba', // Z
+      '#b5d3f7', // J
+      '#ffd6a5', // L
+      '#d5d8e0', // Tuerca
+    ],
+    draw(context, x, y, colorIndex, size, alpha) {
+      const color = this.colors[colorIndex];
+      const px = x * size + 1.5, py = y * size + 1.5, s = size - 3;
+      const r = Math.max(2, Math.round(size * 0.28));
+      context.save();
+      context.globalAlpha = alpha ?? 1;
+      skinRoundRectPath(context, px, py, s, s, r);
+      context.fillStyle = color;
+      context.fill();
+      context.lineWidth = 1;
+      context.strokeStyle = 'rgba(0,0,0,0.25)';
+      context.stroke();
+      // brillo suave en la mitad superior
+      skinRoundRectPath(context, px + 3, py + 3, s - 6, Math.max(3, s * 0.3), Math.max(1, r - 3));
+      context.fillStyle = 'rgba(255,255,255,0.35)';
+      context.fill();
+      context.restore();
+    },
+  },
+
+  // Pixel art: textura de subpíxeles claros/oscuros con borde oscuro
+  pixel: {
+    colors: [
+      null,
+      '#29adff', // I
+      '#ffec27', // O
+      '#b13e9d', // T
+      '#00e436', // S
+      '#ff004d', // Z
+      '#3a5bd9', // J
+      '#ffa300', // L
+      '#a0a0a8', // Tuerca
+    ],
+    draw(context, x, y, colorIndex, size, alpha) {
+      const color = this.colors[colorIndex];
+      const px = x * size + 1, py = y * size + 1, s = size - 2;
+      const n = 6;                       // rejilla de n×n subpíxeles
+      const cell = Math.max(1, Math.floor((s - 4) / n));
+      const inner = cell * n;
+      const ox = px + Math.floor((s - inner) / 2);
+      const oy = py + Math.floor((s - inner) / 2);
+      context.save();
+      context.globalAlpha = alpha ?? 1;
+      // borde oscuro y base
+      context.fillStyle = 'rgba(0,0,0,0.65)';
+      context.fillRect(px, py, s, s);
+      context.fillStyle = color;
+      context.fillRect(px + 1, py + 1, s - 2, s - 2);
+      // textura de tablero de ajedrez de subpíxeles
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          context.fillStyle = (r + c) % 2 ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.16)';
+          context.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+        }
+      }
+      // bisel: luz arriba/izquierda, sombra abajo/derecha
+      context.fillStyle = 'rgba(255,255,255,0.55)';
+      context.fillRect(px + 1, py + 1, s - 2, 1);
+      context.fillRect(px + 1, py + 1, 1, s - 2);
+      context.fillStyle = 'rgba(0,0,0,0.45)';
+      context.fillRect(px + 1, py + s - 2, s - 2, 1);
+      context.fillRect(px + s - 2, py + 1, 1, s - 2);
+      context.restore();
+    },
+  },
+};
+
+let skin = 'retro';
+
+// Color de la cuadrícula según skin y tema
+function skinGridColor(isLight) {
+  if (skin === 'neon') return '#16161f';
+  // Pastel y Pixel tienen fondo propio en tema claro: cuadrícula oscura translúcida
+  if (isLight && (skin === 'pastel' || skin === 'pixel')) return 'rgba(0,0,0,0.1)';
+  return isLight ? '#e3e5ef' : '#22222e';
+}
+
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = (theme === 'light' ? COLORS_LIGHT : COLORS)[colorIndex];
-  context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  SKINS[skin].draw(context, x, y, colorIndex, size, alpha);
 }
 
 function drawGrid() {
@@ -324,11 +472,12 @@ function applyTheme(name) {
   theme = name === 'light' ? 'light' : 'dark';
   const isLight = theme === 'light';
   document.documentElement.dataset.theme = theme;
-  gridColor = isLight ? '#e3e5ef' : '#22222e';
+  gridColor = skinGridColor(isLight);
   themeBtn.setAttribute('aria-pressed', String(isLight));
   themeBtn.setAttribute('aria-label', isLight ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro');
   themeBtn.textContent = isLight ? 'Tema oscuro' : 'Tema claro';
   if (next) drawNext();
+  if (current && board && (paused || gameOver)) draw(); // sin rAF activo hay que repintar a mano
 }
 
 themeBtn.addEventListener('click', () => {
@@ -341,5 +490,38 @@ themeBtn.addEventListener('click', () => {
 let savedTheme = null;
 try { savedTheme = localStorage.getItem('theme'); } catch (e) {}
 applyTheme(savedTheme);
+
+// ---- Skins ---- (selector y arranque)
+const skinSelect = document.getElementById('skin-select');
+
+function applySkin(name) {
+  skin = Object.prototype.hasOwnProperty.call(SKINS, name) ? name : 'retro';
+  document.documentElement.dataset.skin = skin;
+  skinSelect.value = skin;
+  gridColor = skinGridColor(theme === 'light');
+  if (next) drawNext();
+  // Si no hay rAF activo (pausa / game over) hay que repintar el tablero a mano
+  if (current && board && (paused || gameOver)) draw();
+}
+
+skinSelect.addEventListener('change', () => {
+  applySkin(skinSelect.value);
+  try { localStorage.setItem('skin', skin); } catch (e) {}
+  skinSelect.blur(); // evita que las flechas y Space manipulen el <select>
+});
+
+// Con el <select> enfocado, las flechas/Space no deben llegar al juego (solo P)
+skinSelect.addEventListener('keydown', e => {
+  if (e.code === 'KeyP') {
+    e.preventDefault(); // evita el type-ahead nativo ("P" -> Pastel/Pixel); P sigue llegando al juego
+    return;
+  }
+  if (e.code === 'Escape' || e.code === 'Enter') skinSelect.blur(); // devuelve el control al juego sin cambiar nada
+  e.stopPropagation();
+});
+
+let savedSkin = null;
+try { savedSkin = localStorage.getItem('skin'); } catch (e) {}
+applySkin(savedSkin);
 
 init();
