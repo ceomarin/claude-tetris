@@ -68,12 +68,27 @@ const recordsList = document.getElementById('records-list');
 const recordsStats = document.getElementById('records-stats');
 const resetRecordsBtn = document.getElementById('reset-records-btn');
 const themeBtn = document.getElementById('theme-toggle');
+const pauseMenu = document.getElementById('pause-menu');
+const pauseMain = document.getElementById('pause-main');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelEl = document.getElementById('start-level');
+
+const MAX_START_LEVEL = 10;
 
 let theme = 'dark';
 let gridColor = '#22222e';
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let board, current, next, score, lines, level, baseLevel, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let combo, maxCombo, started, pendingEntry;
 let records = { top: [], bestCombo: 0, maxLines: 0 };
+// Estado del menú de pausa: startLevel persiste entre partidas (init() no lo reinicia)
+let startLevel = 1;
+let menuView = 'main';
+let menuIndex = 0;
+
+// Velocidad de caída (ms) para un nivel dado
+function intervalForLevel(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
+}
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -142,8 +157,8 @@ function clearLines() {
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = baseLevel + Math.floor(lines / 10);
+    dropInterval = intervalForLevel(level);
   }
   updateHUD(); // también refleja el combo reiniciado
 }
@@ -376,13 +391,107 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    closePauseMenu();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    showOverlay({ title: 'PAUSA' });
+    openPauseMenu();
   }
 }
+
+function openPauseMenu() {
+  menuView = 'main';
+  menuIndex = 0;
+  renderMenu();
+  pauseMenu.classList.remove('hidden');
+}
+
+function closePauseMenu() {
+  pauseMenu.classList.add('hidden');
+  // Evita que un botón con foco reaccione a Space/Enter al volver al juego
+  if (document.activeElement) document.activeElement.blur();
+}
+
+// Botones navegables de la vista visible del menú
+function menuItems() {
+  const view = menuView === 'main' ? pauseMain : pauseControls;
+  return [...view.querySelectorAll('.menu-item')];
+}
+
+function renderMenu() {
+  pauseMain.classList.toggle('hidden', menuView !== 'main');
+  pauseControls.classList.toggle('hidden', menuView !== 'controls');
+  menuItems().forEach((el, i) => el.classList.toggle('selected', i === menuIndex));
+  startLevelEl.textContent = startLevel;
+}
+
+function setMenuView(view) {
+  menuView = view;
+  menuIndex = 0;
+  renderMenu();
+}
+
+function moveMenu(delta) {
+  const n = menuItems().length;
+  menuIndex = (menuIndex + delta + n) % n;
+  renderMenu();
+}
+
+// Cambia el nivel inicial (cíclico 1..MAX_START_LEVEL); solo afecta a la próxima partida
+function changeStartLevel(delta) {
+  startLevel = ((startLevel - 1 + delta + MAX_START_LEVEL) % MAX_START_LEVEL) + 1;
+  renderMenu();
+}
+
+function activateMenuItem(action) {
+  switch (action) {
+    case 'resume': togglePause(); break;
+    case 'restart': closePauseMenu(); init(); break;
+    case 'controls': setMenuView('controls'); break;
+    case 'back': setMenuView('main'); break;
+    case 'level': changeStartLevel(1); break;
+  }
+}
+
+// Teclas con el menú abierto: nada llega al juego
+function handleMenuKey(e) {
+  const item = menuItems()[menuIndex];
+  switch (e.code) {
+    case 'ArrowUp': moveMenu(-1); break;
+    case 'ArrowDown': moveMenu(1); break;
+    case 'ArrowLeft':
+    case 'ArrowRight':
+      if (item.dataset.action === 'level') changeStartLevel(e.code === 'ArrowLeft' ? -1 : 1);
+      break;
+    case 'Enter':
+    case 'NumpadEnter':
+      activateMenuItem(item.dataset.action);
+      break;
+    case 'Space': break; // se ignora (no activa), pero se evita el click sobre un botón con foco
+    default: return;
+  }
+  e.preventDefault();
+}
+
+pauseMenu.addEventListener('click', e => {
+  const deltaBtn = e.target.closest('[data-delta]');
+  if (deltaBtn) {
+    changeStartLevel(Number(deltaBtn.dataset.delta));
+    return;
+  }
+  const item = e.target.closest('.menu-item');
+  if (item) activateMenuItem(item.dataset.action);
+});
+
+pauseMenu.addEventListener('mouseover', e => {
+  const item = e.target.closest('.menu-item');
+  const i = menuItems().indexOf(item);
+  if (i >= 0 && i !== menuIndex) {
+    menuIndex = i;
+    renderMenu();
+  }
+});
 
 function loop(ts) {
   const dt = ts - lastTime;
@@ -405,10 +514,11 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  baseLevel = startLevel;
+  level = baseLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = intervalForLevel(level);
   dropAccum = 0;
   combo = 0;
   maxCombo = 0;
@@ -419,14 +529,19 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  pauseMenu.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
   if (!started) return;
-  if (e.code === 'KeyP') { togglePause(); return; }
-  if (paused || gameOver) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (!e.repeat) togglePause();
+    return;
+  }
+  if (gameOver) return;
+  if (paused) { handleMenuKey(e); return; }
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
