@@ -43,7 +43,7 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
-            <li><kbd>P</kbd> pausa</li>
+            <li><kbd>P</kbd><kbd>Esc</kbd> pausa</li>
           </ul>
         </div>
       </aside>
@@ -54,6 +54,39 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="pause-menu" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Menú de pausa">
+      <div class="overlay-box menu-box">
+        <p class="menu-title">PAUSA</p>
+
+        <div id="pause-main" class="menu-list">
+          <button type="button" class="menu-item" data-action="resume">Reanudar</button>
+          <button type="button" class="menu-item" data-action="restart">Reiniciar</button>
+          <button type="button" class="menu-item" data-action="controls">Ver controles</button>
+          <div class="menu-item menu-level" data-action="level">
+            <span>Nivel inicial</span>
+            <span class="level-picker">
+              <button type="button" class="level-btn" data-delta="-1" tabindex="-1" aria-label="Bajar nivel inicial">◀</button>
+              <span id="start-level" class="level-value">1</span>
+              <button type="button" class="level-btn" data-delta="1" tabindex="-1" aria-label="Subir nivel inicial">▶</button>
+            </span>
+          </div>
+          <p class="menu-hint">El nivel inicial se aplica en la próxima partida.</p>
+        </div>
+
+        <div id="pause-controls" class="menu-list hidden">
+          <ul class="menu-keys">
+            <li><kbd>←</kbd><kbd>→</kbd> mover</li>
+            <li><kbd>↑</kbd><kbd>X</kbd> rotar</li>
+            <li><kbd>↓</kbd> bajar</li>
+            <li><kbd>Space</kbd> caída</li>
+            <li><kbd>P</kbd><kbd>Esc</kbd> pausar / reanudar</li>
+            <li><kbd>↑</kbd><kbd>↓</kbd><kbd>Enter</kbd> navegar el menú</li>
+          </ul>
+          <button type="button" class="menu-item" data-action="back">Volver</button>
+        </div>
       </div>
     </div>
   </div>
