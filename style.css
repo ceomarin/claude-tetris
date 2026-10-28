@@ -164,6 +164,45 @@ kbd {
   border-color: var(--accent);
 }
 
+/* ---- Selector de skin ---- */
+.skin-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.skin-picker button {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 5px 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.skin-picker button:hover {
+  border-color: var(--accent);
+}
+
+.skin-picker button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+/* Neon: fondo negro en los canvas en ambos temas, con halo */
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  background: #000;
+}
+
+[data-skin="neon"] #board {
+  border-color: #00f0ff;
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.45);
+}
+
 /* ---- Overlay ---- */
 .overlay {
   position: absolute;
