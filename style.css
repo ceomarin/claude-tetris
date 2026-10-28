@@ -216,3 +216,128 @@ kbd {
 #restart-btn:hover {
   background: var(--accent-hover);
 }
+
+/* ---- Records ---- */
+.records-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.records-list li {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 4px;
+  align-items: baseline;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.records-list .rec-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.records-list .rec-score {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.records-list li.rec-empty .rec-name,
+.records-list li.rec-empty .rec-score {
+  color: var(--label);
+  font-weight: 400;
+}
+
+.records-list li.rec-highlight {
+  background: var(--accent);
+}
+
+.records-list li.rec-highlight .rec-pos,
+.records-list li.rec-highlight .rec-name,
+.records-list li.rec-highlight .rec-score {
+  color: var(--accent-contrast);
+  font-weight: 700;
+}
+
+.records-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.records-msg {
+  min-height: 12px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.records-reset-btn,
+#records-save-btn {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.records-reset-btn:hover {
+  border-color: var(--danger);
+}
+
+#records-save-btn:hover {
+  border-color: var(--accent);
+}
+
+#gameover-records {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 210px;
+  text-align: left;
+}
+
+#gameover-records.hidden,
+#records-save-form.hidden {
+  display: none;
+}
+
+#gameover-records .records-list li {
+  font-size: 12px;
+}
+
+#gameover-records .records-stats {
+  font-size: 11px;
+}
+
+#records-save-form {
+  display: flex;
+  gap: 4px;
+}
+
+#records-name-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--canvas-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+  user-select: text;
+}
+
+#records-name-input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
