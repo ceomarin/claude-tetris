@@ -148,7 +148,8 @@ kbd {
 }
 
 /* ---- Toggle de tema ---- */
-#theme-toggle {
+#theme-toggle,
+#skin-select {
   background: var(--kbd-bg);
   color: var(--text);
   border: 1px solid var(--kbd-border);
@@ -158,8 +159,20 @@ kbd {
   cursor: pointer;
 }
 
-#theme-toggle:hover {
+#theme-toggle:hover,
+#skin-select:hover {
   border-color: var(--accent);
+}
+
+/* ---- Skin neon: fondo negro en ambos temas ---- */
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  background: #000;
+  border-color: #1a1a2a;
+}
+
+[data-skin="neon"] #board {
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
 }
 
 /* ---- Overlay ---- */
