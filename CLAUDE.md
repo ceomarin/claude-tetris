@@ -13,14 +13,26 @@ No hay `package.json`, build, linter ni suite de tests. No inventes comandos de 
 
 Juego de Tetris en JavaScript vanilla con Canvas 2D. Sin módulos ni bundler: `index.html` carga `style.css` y `game.js` con `<script>` clásico al final del `<body>`, así que todas las `const`/`let`/`function` de `game.js` son globales de la página.
 
-- **Estado**: variables globales `let` en `game.js` (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `animId`…). `init()` las reinicia por completo y es también el handler del botón de reinicio, así que cualquier estado nuevo debe inicializarse ahí.
+- **Estado**: variables globales `let` en `game.js` (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `animId`, `combo`, `maxCombo`, `started`, `pendingEntry`…). `init()` las reinicia por completo y es también el handler del botón de reinicio, así que cualquier estado nuevo debe inicializarse ahí.
 - **Tablero**: matriz `ROWS × COLS` de enteros; `0` vacío, `1–8` índice en `COLORS` / `PIECES` (el 8 es la tuerca 3×3 con hueco central). Las piezas son matrices cuadradas en `PIECES`; `randomPiece()` copia la forma para que las rotaciones no muten la plantilla.
 - **Flujo de caída**: `loop(ts)` (vía `requestAnimationFrame`) acumula `dt` en `dropAccum`; al superar `dropInterval` mueve la pieza una fila o llama a `lockPiece()`. `lockPiece()` encadena `merge()` → `clearLines()` → `spawn()`. `spawn()` promueve `next` a `current` y, si colisiona, llama a `endGame()`.
 - **Colisiones y rotación**: `collide(shape, ox, oy)` es la única fuente de verdad para choques (bordes, suelo y bloques fijados). `tryRotate()` prueba kicks horizontales `[0, -1, 1, -2, 2]`; no hay kicks verticales, así que una rotación de la pieza I junto al suelo puede fallar.
 - **Puntuación y nivel**: `clearLines()` suma `LINE_SCORES[n] × level`, recalcula `level = floor(lines/10) + 1` y `dropInterval = max(100, 1000 − (level−1)×90)`. Soft drop suma 1 punto por fila; hard drop suma 2 por celda (en `hardDrop()`).
 - **Render**: `draw()` se ejecuta en cada frame y repinta todo: cuadrícula, tablero fijado, ghost piece (`ghostY()` con `globalAlpha` 0.2) y pieza actual. `drawNext()` pinta la vista previa en `#next-canvas` solo al hacer spawn.
 - **Pausa**: `togglePause()` cancela o reanuda el rAF; `P` funciona incluso con el juego pausado o terminado, el resto de teclas se ignoran si `paused || gameOver`.
-- **Valores de UI en sincronía**: `updateHUD()` debe llamarse tras cualquier cambio de `score`, `lines` o `level`. El `keydown` handler ya lo llama al final, pero `clearLines()` y `softDrop()` también lo hacen por su cuenta.
+- **Valores de UI en sincronía**: `updateHUD()` debe llamarse tras cualquier cambio de `score`, `lines`, `level` o `combo`. El `keydown` handler ya lo llama al final, pero `clearLines()` y `softDrop()` también lo hacen por su cuenta.
+
+## Records
+
+Tabla de records local persistida en `localStorage` (siempre dentro de `try/catch`, el juego funciona sin almacenamiento).
+
+- **Claves**: `tetris-records` guarda `{ top, bestCombo, maxLines }` (`top` = hasta `MAX_RECORDS` = 5 entradas `{ name, score, lines, combo }` ordenadas por puntuación); `tetris-player` recuerda el último nombre escrito. `loadRecords()` valida y sanea lo leído; `records` es el estado en memoria (se carga una vez al arrancar, no en `init()`).
+- **Combo**: número de piezas consecutivas que, al fijarse, limpian al menos una línea. `clearLines()` lo incrementa si `cleared > 0` y lo pone a 0 si no; `maxCombo` guarda el máximo de la partida. Ambos se reinician en `init()`. El HUD muestra el combo actual.
+- **Estadísticas globales**: `updateStats()` (llamada en `endGame()`) actualiza `bestCombo` y `maxLines` aunque la partida no entre en el top.
+- **Game over**: `rankFor(score)` devuelve la posición (0-based) o `-1`; las puntuaciones iguales quedan por debajo y `0` nunca entra. Si entra, `pendingEntry` guarda la entrada, se muestra el formulario de nombre y la fila se resalta (`.highlight`) como vista previa. `commitPending(name)` la inserta y guarda (nombre vacío → `Anónimo`); se llama al enviar el formulario y también al pulsar Reiniciar, para no perder el record.
+- **Pantalla de inicio**: al cargar, `init()` crea el estado y `showStart()` lo congela (`started = false`) mostrando el overlay con el top y el botón «Jugar»; mientras `started` es `false` el `keydown` ignora todas las teclas. `init()` pone `started = true`.
+- **Overlay compartido**: `showOverlay({...})` configura el mismo `#overlay` para inicio, pausa y game over (título, mensaje, formulario, tabla de records, texto del botón). Las filas se construyen con `textContent` (nunca `innerHTML`) porque el nombre lo escribe el usuario.
+- **Reset**: el botón `#reset-records-btn` (con `confirm`) vacía `records`; si se pulsa tras un game over, la partida recién terminada se sigue contando en las estadísticas.
 
 ## Dimensiones acopladas
 
